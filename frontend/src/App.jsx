@@ -5,17 +5,27 @@ import EmotionGenreChart from "./components/EmotionGenreChart";
 import { exportToCSV } from "./utils/exportCSV";
 
 export default function App() {
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState([]);       // hasil per review
+  const [aggregate, setAggregate] = useState(null); // hasil gabungan global
   const [loading, setLoading] = useState(false);
 
-  // Menerima hasil dari ReviewForm
+  // --- Callback setelah form submit ---
   const handleSetResult = (data) => {
-    setResults((prev) => [...prev, data]);
+    // Jika backend kirim aggregate (hasil gabungan semua ulasan)
+    if (data.aggregate) {
+      setAggregate(data.aggregate);
+    }
+
+    if (Array.isArray(data.results)) {
+      setResults(data.results);
+    } else if (data.results) {
+      setResults([data.results]);
+    }
   };
 
-  // Menghapus semua hasil
   const clearResults = () => {
     setResults([]);
+    setAggregate(null);
   };
 
   return (
@@ -25,24 +35,23 @@ export default function App() {
           Genre-Based Audience Sentiment & Emotion Analysis
         </h1>
 
-        {/* Form input & analisis */}
+        {/* Form Input Ulasan */}
         <ReviewForm
           setResult={handleSetResult}
           setLoading={setLoading}
           clearResults={clearResults}
         />
 
-        {/* Status loading */}
+        {/* Loading State */}
         {loading && (
           <div className="text-center text-gray-600 mt-4">
             Sedang menganalisis...
           </div>
         )}
 
-        {/* Hasil analisis */}
-        {!loading && results.length > 0 && (
+        {/* Hasil Analisis */}
+        {!loading && (results.length > 0 || aggregate) && (
           <div className="mt-6 space-y-6">
-            {/* Tombol Export CSV */}
             <div className="flex justify-end items-center">
               <button
                 onClick={() => exportToCSV(results)}
@@ -52,12 +61,15 @@ export default function App() {
               </button>
             </div>
 
-            {/* Daftar hasil analisis */}
+            {/* Jika backend kirim aggregate global (gabungan semua ulasan) */}
+            {aggregate && <ResultCard result={aggregate} />}
+
+            {/* Tampilkan hasil per-review individual */}
             {results.map((res, idx) => (
               <ResultCard key={idx} result={res} />
             ))}
 
-            {/* Chart agregat genre–emosi */}
+            {/* Chart Gabungan Global (rata-rata per genre & emosi) */}
             <EmotionGenreChart data={results} />
           </div>
         )}

@@ -10,32 +10,24 @@ import {
   Legend,
 } from "chart.js";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function ChartEmotion({ scores = [] }) {
   const labels = scores.map((s) => s.Emotion);
   const dataVals = scores.map((s) => s.Score);
 
-  //  Warna berbeda untuk tiap emosi
   const colorMap = {
-    Joy: "#facc15", // Kuning cerah
-    Fear: "#6366f1", // Biru keunguan
-    Sadness: "#60a5fa", // Biru muda
-    Anger: "#ef4444", // Merah
-    Anticipation: "#a855f7", // Ungu muda
-    Disgust: "#84cc16", // Hijau
-    Surprise: "#f472b6", // Pink
-    Optimism: "#22c55e", // Hijau cerah
+    Joy: "#facc15",
+    Fear: "#6366f1",
+    Sadness: "#60a5fa",
+    Anger: "#ef4444",
+    Anticipation: "#a855f7",
+    Disgust: "#84cc16",
+    Surprise: "#f472b6",
+    Optimism: "#22c55e",
   };
 
-  const bgColors = labels.map((l) => colorMap[l] || "#94a3b8"); // warna default abu-abu lembut
+  const bgColors = labels.map((l) => colorMap[l] || "#94a3b8");
 
   const data = {
     labels,
@@ -68,5 +60,9 @@ export default function ChartEmotion({ scores = [] }) {
     },
   };
 
-  return <Bar data={data} options={options} />;
+  return (
+    <div className="w-full h-full">
+      <Bar data={data} options={options} />
+    </div>
+  );
 }

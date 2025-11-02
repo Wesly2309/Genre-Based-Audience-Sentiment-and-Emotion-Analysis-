@@ -1,53 +1,17 @@
 import React, { useState } from "react";
 
 const GENRES = [
-  "drama",
-  "thriller",
-  "horror",
-  "comedy",
-  "romance",
-  "adventure",
-  "music",
-  "family",
-  "psychological",
-  "parody",
-  "school",
-  "magic",
-  "vampire",
-  "shoujo",
-  "space",
-  "shounen",
-  "shoujo ai",
-  "seinen",
-  "super power",
-  "samurai",
-  "military",
-  "martial arts",
-  "supernatural",
-  "war",
-  "demons",
-  "historical",
-  "slice of life",
-  "animation",
-  "mecha",
-  "fantasy",
-  "science fiction",
-  "action",
-  "crime",
-  "mystery",
-  "foreign",
-  "documentary",
-  "biography",
-  "game",
-  "sports",
-  "western"
+  "Drama", "Romance", "Comedy", "Thriller", "Action", "Fantasy",
+  "Horror", "Family", "Adventure", "Crime", "Science Fiction",
+  "Mystery", "Music", "Animation", "Foreign", "History",
+  "Documentary", "War", "TV Movie", "Western",
 ];
 
 export default function ReviewForm({ setResult, setLoading, clearResults }) {
   const [review, setReview] = useState("");
   const [selected, setSelected] = useState([]);
   const [hasAnalysis, setHasAnalysis] = useState(false);
-  const [warning, setWarning] = useState(""); // untuk pesan warning
+  const [warning, setWarning] = useState("");
 
   function toggleGenre(g) {
     setSelected((prev) =>
@@ -57,38 +21,48 @@ export default function ReviewForm({ setResult, setLoading, clearResults }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-
-    // reset warning dulu
     setWarning("");
 
-    // validasi manual
     if (!review.trim() || selected.length === 0) {
-      setWarning("Tolong isi ulasan dan pilih minimal satu genre.");
+      setWarning("Tolong isi minimal satu ulasan dan pilih genre.");
+      return;
+    }
+
+    const reviews = review
+      .split("\n")
+      .map((r) => r.trim())
+      .filter((r) => r.length > 0);
+
+    if (reviews.length === 0) {
+      setWarning("Pastikan ada minimal satu ulasan valid.");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/predict", {
+      const res = await fetch("/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ review, genres: selected }),
+        body: JSON.stringify({ reviews, genres: selected }),
       });
       const data = await res.json();
+
+      // Backend sekarang kirim: { results: [...], aggregate: {...} }
       setResult({
-        ...data,
-        Review: review,
-        Genres: selected,
+        results: data.results || [],
+        aggregate: data.aggregate || null,
+        count: data.results ? data.results.length : 0,
       });
+
       setHasAnalysis(true);
     } catch (err) {
-      setWarning("Gagal terhubung ke server. Pastikan backend Flask berjalan.");
+      console.error(err);
+      setWarning("Gagal terhubung ke server Flask. Pastikan backend berjalan.");
     } finally {
       setLoading(false);
     }
   }
 
-  // langsung hapus tanpa konfirmasi
   const handleClear = () => {
     clearResults();
     setReview("");
@@ -102,12 +76,11 @@ export default function ReviewForm({ setResult, setLoading, clearResults }) {
       <textarea
         value={review}
         onChange={(e) => setReview(e.target.value)}
-        placeholder="Example: The film is full of suspense, emotional scenes, and is very touching."
+        placeholder={`Enter multiple reviews (separate them with Enter)\nExample:\nThis film is very touching.\nThe story is suspenseful from beginning to end.`}
         className="w-full p-4 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-        rows={5}
+        rows={8}
       />
 
-      {/* Warning text muncul di bawah textarea */}
       {warning && (
         <div className="text-red-500 text-sm font-medium mt-1">{warning}</div>
       )}
@@ -135,7 +108,6 @@ export default function ReviewForm({ setResult, setLoading, clearResults }) {
       </div>
 
       <div className="flex justify-between items-center mt-4">
-        {/* Tombol Bersihkan hanya muncul jika hasil sudah tampil */}
         {hasAnalysis && (
           <button
             type="button"
@@ -145,7 +117,6 @@ export default function ReviewForm({ setResult, setLoading, clearResults }) {
             Bersihkan Riwayat
           </button>
         )}
-
         <button
           type="submit"
           className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:scale-[1.02] transition"
