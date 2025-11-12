@@ -13,18 +13,24 @@ export default function ReviewForm({ setResult, setLoading, clearResults }) {
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [warning, setWarning] = useState("");
 
+  // ==========================================================
+  // Toggle pilihan genre
+  // ==========================================================
   function toggleGenre(g) {
     setSelected((prev) =>
       prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
     );
   }
 
+  // ==========================================================
+  // Kirim data ke backend Flask
+  // ==========================================================
   async function handleSubmit(e) {
     e.preventDefault();
     setWarning("");
 
     if (!review.trim() || selected.length === 0) {
-      setWarning("Tolong isi minimal satu ulasan dan pilih genre.");
+      setWarning("Please fill in at least one review and select a genre.");
       return;
     }
 
@@ -34,7 +40,7 @@ export default function ReviewForm({ setResult, setLoading, clearResults }) {
       .filter((r) => r.length > 0);
 
     if (reviews.length === 0) {
-      setWarning("Pastikan ada minimal satu ulasan valid.");
+      setWarning("Make sure there is at least one valid review.");
       return;
     }
 
@@ -47,81 +53,120 @@ export default function ReviewForm({ setResult, setLoading, clearResults }) {
       });
       const data = await res.json();
 
-      // Backend sekarang kirim: { results: [...], aggregate: {...} }
       setResult({
         results: data.results || [],
         aggregate: data.aggregate || null,
+        analysisData: {
+          global_emotion_chart: data.global_emotion_chart || [],
+          genre_emotion_summary: data.genre_emotion_summary || [],
+          emotion_trend: data.emotion_trend || [],
+        },
         count: data.results ? data.results.length : 0,
       });
 
       setHasAnalysis(true);
     } catch (err) {
       console.error(err);
-      setWarning("Gagal terhubung ke server Flask. Pastikan backend berjalan.");
+      setWarning("Failed to connect to Flask server. Make sure the backend is running.");
     } finally {
       setLoading(false);
     }
   }
 
-  const handleClear = () => {
-    clearResults();
-    setReview("");
-    setSelected([]);
-    setHasAnalysis(false);
+  // ==========================================================
+  // Reset analisis dan hapus cache backend
+  // ==========================================================
+  async function handleClear() {
     setWarning("");
-  };
+    setLoading(true);
+    try {
+      await fetch("/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
 
+      clearResults();
+      setReview("");
+      setSelected([]);
+      setHasAnalysis(false);
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (err) {
+      console.error(err);
+      setWarning("Failed to delete data in backend.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ==========================================================
+  // UI (Horizontal Wide Layout)
+  // ==========================================================
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <textarea
-        value={review}
-        onChange={(e) => setReview(e.target.value)}
-        placeholder={`Enter multiple reviews (separate them with Enter)\nExample:\nThis film is very touching.\nThe story is suspenseful from beginning to end.`}
-        className="w-full p-4 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-        rows={8}
-      />
-
-      {warning && (
-        <div className="text-red-500 text-sm font-medium mt-1">{warning}</div>
-      )}
-
-      <div>
-        <div className="flex flex-wrap gap-2">
-          {GENRES.map((g) => (
-            <button
-              type="button"
-              key={g}
-              onClick={() => toggleGenre(g)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition ${
-                selected.includes(g)
-                  ? "bg-indigo-600 text-white shadow"
-                  : "bg-white border border-gray-200 text-gray-700"
-              }`}
-            >
-              {g}
-            </button>
-          ))}
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white/70 border border-gray-200 rounded-2xl p-6 shadow-md backdrop-blur-sm mb-6 transition-all"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ===== Text Input Area ===== */}
+        <div className="flex flex-col">
+          <label className="text-sm font-semibold text-gray-700 mb-2">
+            Enter some reviews:
+          </label>
+          <textarea
+            value={review}
+            onChange={(e) => setReview(e.target.value)}
+            className="w-full flex-1 min-h-[200px] p-4 rounded-xl border border-gray-300 shadow-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300 text-sm text-gray-800"
+            rows={8}
+          />
+          {warning && (
+            <div className="text-red-500 text-xs font-medium mt-1">{warning}</div>
+          )}
         </div>
-        <div className="text-xs text-gray-500 mt-2">
-          Pilih genre yang relevan (boleh lebih dari satu).
+
+        {/* ===== Genre Selection ===== */}
+        <div>
+          <label className="text-sm font-semibold text-gray-700 mb-2 block">
+            Select the relevant genre:
+          </label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {GENRES.map((g) => (
+              <button
+                type="button"
+                key={g}
+                onClick={() => toggleGenre(g)}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                  selected.includes(g)
+                    ? "bg-indigo-600 text-white shadow"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-indigo-50"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+          <div className="text-xs text-gray-500 italic">
+            Can choose more than one genre.
+          </div>
         </div>
       </div>
 
-      <div className="flex justify-between items-center mt-4">
+      {/* ===== Actions ===== */}
+      <div className="flex justify-between items-center mt-6">
         {hasAnalysis && (
           <button
             type="button"
             onClick={handleClear}
             className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-600 transition"
           >
-            Bersihkan Riwayat
+            Clear History
           </button>
         )}
         <button
           type="submit"
-          className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:scale-[1.02] transition"
+          className="px-6 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:scale-[1.03] transition"
         >
-          Analisa
+        Analysis
         </button>
       </div>
     </form>

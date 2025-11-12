@@ -4,5 +4,6 @@
 
 body {
   @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-white;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial;
 }
